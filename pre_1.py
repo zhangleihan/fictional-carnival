@@ -1,13 +1,13 @@
 #!/usr/bin/python
 import numpy as np
 import pickle
-
+'''
 with open('/Users/chris/Desktop/Tensor_test/data/train_half.pkl','rb') as f1:
 	train = pickle.load(f1)
 
 with open('/Users/chris/Desktop/Tensor_test/data/val_half.pkl','rb') as f2:
 	val = pickle.load(f2)
-
+'''
 '''
 with open('/Users/chris/Desktop/Tensor_test/data/train.pkl','rb') as f1:
 	train = pickle.load(f1)
@@ -15,6 +15,13 @@ with open('/Users/chris/Desktop/Tensor_test/data/train.pkl','rb') as f1:
 with open('/Users/chris/Desktop/Tensor_test/data/val.pkl','rb') as f2:
 	val = pickle.load(f2)
 '''
+with open('/Users/chris/Desktop/Tensor_test/data/cascade.pkl','rb') as f1:
+	train = pickle.load(f1)
+
+with open('/Users/chris/Desktop/Tensor_test/data/label.pkl','rb') as f2:
+	val = pickle.load(f2)
+
+
 train_x = []
 val_x = []
 train_y = []

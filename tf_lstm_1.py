@@ -5,11 +5,7 @@ import tensorflow.contrib.layers as layers
 
 map_fn = tf.map_fn
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth=True
-session = tf.Session(config=config)
-
-#session = tf.Session()
+session = tf.Session()
 
 train_x,train_y,val_x,val_y = dataloader.data_loader()
 
@@ -18,8 +14,8 @@ train_x,train_y,val_x,val_y = dataloader.data_loader()
 ################################################################################
 
 INPUT_SIZE    = 1      # 1 value per timestep
-RNN_HIDDEN    = 64
-OUTPUT_SIZE   = 2      # 2 value per timestep
+RNN_HIDDEN    = 60
+OUTPUT_SIZE   = 1      # 1 value per timestep
 TINY          = 1e-6    # to avoid NaNs in logs
 LEARNING_RATE = 0.01
 
@@ -53,22 +49,18 @@ initial_state = cell.zero_state(batch_size, tf.float32)
 #  - states:  (time, batch, hidden_size)
 rnn_outputs, rnn_states = tf.nn.dynamic_rnn(cell, inputs, initial_state=initial_state, time_major=True)
 
-#rnn_outputs = tf.reshape(tf.reduce_mean(rnn_outputs,axis = 1,keep_dims = True),[-1,RNN_HIDDEN,1])
-
-rnn_outputs = tf.reduce_mean(rnn_outputs,axis = 1,keep_dims = True)
-
 # project output from rnn output size to OUTPUT_SIZE. Sometimes it is worth adding an extra layer here.
-#final_projection = lambda x: layers.linear(x, num_outputs=OUTPUT_SIZE, activation_fn=tf.nn.sigmoid)
-final_projection = lambda x: layers.linear(x, num_outputs=OUTPUT_SIZE, activation_fn=tf.nn.softmax)
+final_projection = lambda x: layers.linear(x, num_outputs=OUTPUT_SIZE, activation_fn=tf.nn.sigmoid)
+#final_projection = lambda x: layers.linear(x, num_outputs=OUTPUT_SIZE, activation_fn=tf.nn.softmax)
 
 # apply projection to every timestep.
 predicted_outputs = map_fn(final_projection, rnn_outputs)
-#predicted_outputs = rnn_outputs
 
+#predicted_outputs = predicted_outputs[-1]
 
 # compute elementwise cross entropy.
 
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=predicted_outputs, labels=outputs))
+loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=predicted_outputs, labels=outputs))
 
 #loss = -(outputs * tf.log(predicted_outputs + TINY) + (1.0 - outputs) * tf.log(1.0 - predicted_outputs + TINY))
 #loss = tf.reduce_mean(loss)
@@ -78,7 +70,7 @@ train_fn = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(loss)
 #train_fn = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(loss)
 
 #accuracy = tf.reduce_mean(tf.cast(tf.abs(outputs - predicted_outputs) < 0.5, tf.float32))
-correct_pred = tf.equal(tf.argmax(predicted_outputs,-1), tf.argmax(outputs,-1))
+correct_pred = tf.equal(tf.argmax(predicted_outputs,1), tf.argmax(outputs,1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 ################################################################################
@@ -86,17 +78,16 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 ################################################################################
 
 NUM_BITS = 17
-DIM1 = 10
+DIM1 = 60
 DIM2 = 1
-ITERATIONS_PER_EPOCH = 25
-BATCH_SIZE = 1164
+ITERATIONS_PER_EPOCH = 50
+BATCH_SIZE = 582
 COUNT1 = 0
 
 #valid_x, valid_y, COUNT1 = dataloader.generate_batch(DIM1, DIM2, 2000, train_x, train_y, 0, NUM_BITS)
 
-#valid_x, valid_y, COUNT1 = dataloader.generate_batch(DIM1, DIM2, 7285, val_x, val_y, COUNT1, NUM_BITS)
+valid_x, valid_y, COUNT1 = dataloader.generate_batch(DIM1, DIM2, 7285, train_x, train_y, COUNT1, NUM_BITS)
 
-valid_x, valid_y, COUNT1 = dataloader.generate_batch(DIM1, DIM2, 3700, val_x, val_y, COUNT1, NUM_BITS)
 
 session.run(tf.global_variables_initializer())
 
@@ -109,19 +100,17 @@ for epoch in range(30):
         # own do not trigger the backprop.
         x, y, COUNT2 = dataloader.generate_batch(DIM1, DIM2, BATCH_SIZE, train_x, train_y, COUNT2, NUM_BITS)
         '''
-        if epoch >= 1 and i >= 3:
+        if epoch >= 0:
             print ('predicted outputs:\n')
-            flag = session.run(predicted_outputs,feed_dict={inputs: x})
-            print(flag)
-            print(flag.shape)
+            print(session.run(predicted_outputs,feed_dict={inputs: x}))
             print('real outputs:\n')
             print(y)
-            print(y.shape)
             raw_input("Press Enter to continue...")
-        '''
         iter_loss = session.run([loss, train_fn], {inputs: x, outputs: y})[0]
         iter_accuracy = session.run(accuracy, {inputs: x, outputs: y})
-        print "Iter %d, train iter loss: %.6f, iter valid accuracy: %.5f %%" % (i, iter_loss, iter_accuracy * 100)
+        print "Iter %d, train iter loss: %.2f, iter valid accuracy: %.1f %%" % (i, iter_loss, iter_accuracy * 100)
+        '''
+
         epoch_loss += iter_loss
 
     print("Optimization Finished!\n")

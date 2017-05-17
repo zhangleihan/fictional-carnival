@@ -55,6 +55,8 @@ def generate_batch(dim1,dim2,batch_size,inputs,targets,num,num_bits):
         num += 1
     return x, y, num
 '''
+'''
+#return normalization value
 def generate_batch(dim1,dim2,batch_size,inputs,targets,num,numbits):
     x = np.empty((batch_size, dim1, 1), dtype = float)
     y = np.empty((batch_size, dim2, 1), dtype = float)
@@ -64,4 +66,16 @@ def generate_batch(dim1,dim2,batch_size,inputs,targets,num,numbits):
         y[i, :, 0] = 1.0 / (1 + np.exp(-targets[num]))
         num += 1
     return x, y, num
+'''
+def generate_batch(dim1,dim2,batch_size,inputs,targets,num,numbits):
+    x = np.empty((batch_size, dim1, 1), dtype = float)
+    y = np.empty((batch_size, dim2, 2), dtype = float)
+
+    for i in range(batch_size):
+        x[i, :, 0] = inputs[num]
+        y[i, :, 0] = targets[num][0]
+        y[i, :, 1] = targets[num][1]
+        num += 1
+    return x, y, num
+
 
